@@ -1,0 +1,5 @@
+capacitor
+ic_chip
+pcb_board
+resistor
+transistor
