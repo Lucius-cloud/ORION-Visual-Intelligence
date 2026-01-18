@@ -1,0 +1,35 @@
+# =====================
+# Android / Gradle
+# =====================
+**/build/
+.gradle/
+.idea/
+*.iml
+local.properties
+
+# =====================
+# Python / ML
+# =====================
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.env
+.venv/
+
+# =====================
+# Models & Data
+# =====================
+*.pt
+*.onnx
+*.h5
+*.pb
+*.tflite
+datasets/
+data/raw/
+data/images/
+
+# =====================
+# OS
+# =====================
+.DS_Store
+Thumbs.db
