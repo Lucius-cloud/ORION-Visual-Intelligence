@@ -57,7 +57,7 @@ ORION-Visual-Intelligence/
 
 - **mAP@50:** ~68%
 - **mAP@50–95:** ~58%
-- Per-class precision, recall & confusion matrix analyzed
+- Per-class precision, recall & confusion matrix analyzed during validation
 - Trained for 40 epochs on a custom dataset
 
 ---
