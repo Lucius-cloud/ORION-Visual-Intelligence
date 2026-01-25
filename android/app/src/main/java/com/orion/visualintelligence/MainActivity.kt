@@ -13,83 +13,68 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import com.orion.visualintelligence.ui.OverlayView
 import com.orion.visualintelligence.model.DetectionOverlay
+import com.orion.visualintelligence.ui.OverlayView
 import com.orion.visualintelligence.utils.ImageUtils
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-private const val TAG = "ORION"
+private const val TAG = "ORION_LINKEDIN"
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var mlExecutor: ExecutorService
-
-    @Volatile
-    private var yoloDetector: YoloDetector? = null
-
+    private lateinit var previewView: PreviewView
     private lateinit var overlayView: OverlayView
 
-    // ⏱️ Throttle inference → 1 FPS
-    @Volatile
+    private var yoloDetector: YoloDetector? = null
     private var lastInferenceTime = 0L
+    private var frameCount = 0
+    private var fpsStartTime = 0L
 
-    private val requestPermission =
+    private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) startPipeline()
+            if (granted) initPipeline()
             else Log.e(TAG, "❌ Camera permission denied")
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔹 Log device info (PROVES real phone)
-        Log.i(
-            "DEVICE",
-            "Model=${android.os.Build.MODEL}, " +
-                    "Hardware=${android.os.Build.HARDWARE}, " +
-                    "SDK=${android.os.Build.VERSION.SDK_INT}"
-        )
-
         cameraExecutor = Executors.newSingleThreadExecutor()
         mlExecutor = Executors.newSingleThreadExecutor()
 
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
+        Log.i(TAG, "🚀 ORION Visual Intelligence started")
+        Log.i(TAG, "📱 YOLOv8 + TensorFlow Lite (On-device inference)")
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED
         ) {
-            startPipeline()
+            initPipeline()
         } else {
-            requestPermission.launch(Manifest.permission.CAMERA)
+            permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
-    private fun startPipeline() {
+    private fun initPipeline() {
         mlExecutor.execute {
-            Log.i(TAG, "🧠 Loading YOLO model…")
+            Log.i(TAG, "🧠 Initializing YOLO detector…")
             yoloDetector = YoloDetector(applicationContext)
-
-            runOnUiThread {
-                startCamera()
-            }
+            runOnUiThread { startCamera() }
         }
     }
 
     private fun startCamera() {
+        previewView = PreviewView(this)
+        overlayView = OverlayView(this)
 
-        val previewView = PreviewView(this)
-        overlayView = OverlayView(this).apply {
-            demoMode = true // portfolio friendly
-        }
-
-        val container = FrameLayout(this).apply {
-            addView(previewView)
-            addView(overlayView)
-        }
-
-        setContentView(container)
+        setContentView(
+            FrameLayout(this).apply {
+                addView(previewView)
+                addView(overlayView)
+            }
+        )
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
@@ -101,63 +86,62 @@ class MainActivity : ComponentActivity() {
                 setSurfaceProvider(previewView.surfaceProvider)
             }
 
-            val imageAnalysis = ImageAnalysis.Builder()
+            val analysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
 
-            imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
+            fpsStartTime = SystemClock.elapsedRealtime()
 
-                // ⏱️ Throttle to ~1 FPS
-                val now = System.currentTimeMillis()
-                if (now - lastInferenceTime < 1000) {
+            analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastInferenceTime < 120) {
                     imageProxy.close()
                     return@setAnalyzer
                 }
                 lastInferenceTime = now
 
                 val bitmap = ImageUtils.toBitmap(imageProxy)
+                imageProxy.close()
 
                 mlExecutor.execute {
-                    try {
-                        val yolo = yoloDetector ?: return@execute
+                    val detector = yoloDetector ?: return@execute
 
-                        // ================= REAL PHONE PERFORMANCE =================
-                        val startTime = SystemClock.elapsedRealtime()
-                        val detections = yolo.detect(bitmap)
-                        val endTime = SystemClock.elapsedRealtime()
+                    val start = SystemClock.elapsedRealtime()
+                    val detections = detector.detect(bitmap)
+                    val end = SystemClock.elapsedRealtime()
 
-                        val inferenceMs = endTime - startTime
-                        val fps = if (inferenceMs > 0) 1000f / inferenceMs else 0f
+                    frameCount++
+                    val elapsed = end - fpsStartTime
+                    val fps = if (elapsed > 0) (frameCount * 1000f / elapsed) else 0f
 
+                    Log.i(
+                        TAG,
+                        "⏱ Inference=${end - start} ms | FPS=${"%.1f".format(fps)} | Detections=${detections.size}"
+                    )
+
+                    detections.forEach {
                         Log.i(
-                            "PERF",
-                            "Inference = ${inferenceMs} ms | FPS ≈ ${"%.2f".format(fps)}"
+                            TAG,
+                            "📦 ${it.label.uppercase()} detected | confidence=${"%.2f".format(it.confidence)}"
                         )
-                        // ===========================================================
+                    }
 
-                        if (overlayView.width == 0 || overlayView.height == 0) return@execute
+                    val overlays = detections.map {
+                        DetectionOverlay(
+                            rect = RectF(
+                                it.box[0] * overlayView.width,
+                                it.box[1] * overlayView.height,
+                                it.box[2] * overlayView.width,
+                                it.box[3] * overlayView.height
+                            ),
+                            label = it.label,
+                            confidence = it.confidence
+                        )
+                    }
 
-                        val overlays = detections.map {
-                            DetectionOverlay(
-                                rect = RectF(
-                                    it.box[0] * overlayView.width,
-                                    it.box[1] * overlayView.height,
-                                    it.box[2] * overlayView.width,
-                                    it.box[3] * overlayView.height
-                                ),
-                                label = it.label,
-                                confidence = it.confidence
-                            )
-                        }
-
-                        runOnUiThread {
-                            overlayView.setDetections(overlays)
-                        }
-
-                    } catch (e: Exception) {
-                        Log.e(TAG, "❌ YOLO inference error", e)
-                    } finally {
-                        imageProxy.close() // ✅ correct place
+                    runOnUiThread {
+                        overlayView.setDetections(overlays)
                     }
                 }
             }
@@ -167,17 +151,17 @@ class MainActivity : ComponentActivity() {
                 this,
                 CameraSelector.DEFAULT_BACK_CAMERA,
                 preview,
-                imageAnalysis
+                analysis
             )
-
-            Log.i(TAG, "📷 Camera started")
 
         }, ContextCompat.getMainExecutor(this))
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        yoloDetector?.close()
         cameraExecutor.shutdown()
         mlExecutor.shutdown()
+        Log.i(TAG, "🧹 ORION pipeline stopped")
     }
 }
