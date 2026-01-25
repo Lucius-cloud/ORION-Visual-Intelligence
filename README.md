@@ -1,105 +1,138 @@
-# ORION-Visual-Intelligence 🚀
+ORION – Visual Intelligence 🚀
 
-**Privacy-first, fully on-device visual intelligence system** for real-time electronics component detection using YOLOv8 and TensorFlow Lite.
+Privacy-first, fully on-device real-time electronic component detection using YOLOv8 and TensorFlow Lite
 
-This project demonstrates an **end-to-end mobile AI pipeline** — from dataset creation and model training to optimized on-device inference on Android using GPU and NNAPI acceleration.
+ORION – Visual Intelligence is an end-to-end mobile computer vision system that performs real-time electronic component detection entirely on-device, without relying on cloud services or network connectivity.
 
----
+This project showcases a complete production-style ML + Android pipeline, covering dataset creation, model training, evaluation, TensorFlow Lite optimization, and hardware-accelerated inference on real Android devices.
 
-## 🧠 What It Does
+🧠 Overview
 
-Detects common electronic components in real time:
-- Resistors
-- Capacitors
-- Transistors
-- ICs
-- PCBs
+ORION detects common electronic components directly from a live camera feed:
 
-All inference runs **entirely on-device** (no cloud, no server).
+Resistors
 
----
+Capacitors
 
-## 🏗️ Project Structure
+Transistors
 
+ICs (Integrated Circuits)
+
+PCBs (Printed Circuit Boards)
+
+All inference is executed locally on the device, ensuring low latency, offline functionality, and user privacy.
+
+🏗️ Project Structure
 ORION-Visual-Intelligence/
-├── android/ # Android app (CameraX + TFLite)
-├── orion-core/ # ML training, inference, conversion pipeline
-├── README.md # Project overview (this file)
+├── android/        # Android application (CameraX + TensorFlow Lite)
+├── orion-core/     # Model training, evaluation, and conversion pipeline
+├── README.md       # Project documentation
 └── .gitignore
+⚙️ Technology Stack
+Machine Learning & Computer Vision
 
+YOLOv8 (Ultralytics)
 
----
+PyTorch
 
-## ⚙️ Tech Stack
+TensorFlow Lite (FP32 → FP16 conversion)
 
-**ML / CV**
-- YOLOv8 (Ultralytics)
-- PyTorch
-- TensorFlow Lite (FP16)
-- Google Colab
+Google Colab
 
-**Mobile**
-- Android (Kotlin)
-- CameraX
-- TensorFlow Lite Interpreter
-- GPU Delegate (primary)
-- NNAPI Delegate (fallback)
+Mobile & Edge Deployment
 
-**Tools**
-- Roboflow (dataset versioning)
-- OpenCV
-- NumPy
-- Matplotlib
+Android (Kotlin)
 
----
+CameraX
 
-## 📊 Model Performance
+TensorFlow Lite Interpreter
 
-- **mAP@50:** ~68%
-- **mAP@50–95:** ~58%
-- Per-class precision, recall & confusion matrix analyzed during validation
-- Trained for 40 epochs on a custom dataset
+GPU Delegate (primary acceleration)
 
----
+NNAPI Delegate (fallback)
 
-## ⚡ On-Device Performance
+Tooling & Utilities
 
-Tested on **OnePlus Nord CE4 Lite**:
-- **Latency:** ~150–220 ms
-- **FPS:** ~4–7 FPS
-- **Delegation:** GPU → NNAPI → CPU fallback
-- **Model:** FP16 TensorFlow Lite
+Roboflow (dataset annotation & versioning)
 
----
+OpenCV
 
-## 📱 Android App Features
+NumPy
 
-- Live camera feed using CameraX
-- Real-time bounding box rendering
-- FPS & inference latency logging
-- Automatic hardware delegate selection
-- Fully offline inference
+Matplotlib
 
----
+📊 Model Training & Evaluation
 
-## 🔒 Privacy & Design Philosophy
+Custom dataset built from 150+ real-world images
 
-- No internet required
-- No image uploads
-- No cloud inference
-- Designed for edge deployment
+Dataset annotated and versioned using Roboflow
 
----
+Model trained using Ultralytics YOLOv8 for 40 epochs
 
-## 📌 Highlights
+Evaluation metrics:
 
-✔ End-to-end ML + Mobile pipeline  
-✔ Hardware-accelerated inference  
-✔ Real-device benchmarking  
-✔ Clean, production-style repo structure  
+mAP@50: ~68%
 
----
+mAP@50–95: ~58%
 
-## 👤 Author
+Per-class precision, recall, and confusion matrix analysis performed during validation
 
-Built by **Naveen Ganesh**  
+⚡ On-Device Performance
+
+Tested on OnePlus Nord CE4 Lite
+
+Inference latency: ~150–220 ms
+
+Throughput: ~4–7 FPS
+
+Hardware delegation: GPU → NNAPI → CPU fallback
+
+Model format: FP16 TensorFlow Lite
+
+Performance metrics were measured using live CameraX input with real-time logging of inference latency and FPS.
+
+📱 Android Application Features
+
+Live camera feed powered by CameraX
+
+Real-time bounding box rendering
+
+FPS and inference latency logging (Logcat)
+
+Automatic hardware delegate selection
+
+Fully offline inference with no network dependency
+
+🧩 Key Engineering Challenges Addressed
+
+Resolved TensorFlow Lite output tensor mismatch by re-exporting the YOLOv8 FP16 model with consistent class configuration
+
+Implemented class-aware Non-Max Suppression (NMS) to eliminate duplicate detections
+
+Integrated GPU delegate with NNAPI fallback for robust hardware acceleration
+
+Validated model performance using live real-world detection, not just offline datasets
+
+🔒 Privacy & Design Philosophy
+
+No internet connectivity required
+
+No image uploads or cloud inference
+
+Designed for edge deployment and privacy-preserving AI
+
+📌 Highlights
+
+End-to-end ML + Android deployment pipeline
+
+Hardware-accelerated on-device inference
+
+Real-device benchmarking and validation
+
+Clean, modular, and production-style project structure
+
+👤 Author
+
+Naveen Ganesh
+
+This project demonstrates practical experience in deploying modern deep learning models to mobile devices, with a strong focus on performance optimization, reliability, and real-world usability.
